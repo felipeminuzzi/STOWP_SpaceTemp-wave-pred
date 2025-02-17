@@ -7,3 +7,6 @@ notebook
 numpy
 pandas
 pip
+glob2
+tqdm
+xarray
