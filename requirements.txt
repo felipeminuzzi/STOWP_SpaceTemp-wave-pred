@@ -10,3 +10,9 @@ pip
 glob2
 tqdm
 xarray
+six
+Pillow
+basemap
+netcdf4
+h5netcdf
+basemap-data-hires

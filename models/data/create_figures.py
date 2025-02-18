@@ -1,15 +1,16 @@
 import os
 import glob
+import shutil
 import numpy as np
-from numpy.core.numeric import full 
-import pandas as pd
 import xarray as xr
-from tqdm import tqdm
-
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
-import matplotlib.gridspec as gridspec
-from matplotlib import animation
+from numpy.core.numeric import full 
+
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.basemap import Basemap
+# import matplotlib.gridspec as gridspec
+# from matplotlib import animation
 
 def plot2map(lon, lat, dados):
     map = Basemap(projection='cyl', llcrnrlon=lon.min(), 
@@ -34,43 +35,59 @@ def plot2map(lon, lat, dados):
 
     return m
 
-if not os.path.exists('/Users/felipeminuzzi/Documents/OCEANO/Simulations/Wind_data/'+'figures'):
-    os.mkdir('/Users/felipeminuzzi/Documents/OCEANO/Simulations/Wind_data/'+'figures')
-path = '/Users/felipeminuzzi/Documents/OCEANO/Simulations/Wind_data/era5_reanalysis/'
-files = sorted(glob.glob(path + '*'))
+os.chdir('./data/')
+raw_path  = './raw/'
+raw_file  = glob.glob(raw_path + '*.nc')
 
-full_data = xr.concat((xr.open_dataset(file) for file in files), dim='time') 
-lat = full_data.latitude.values
-lon = full_data.longitude.values
-swh = full_data.swh.values #significant heigh
-time = full_data.time.values
-wind = full_data.wind.values #10m wind speed
-pp1d = full_data.pp1d.values #peak wave period
-dwi = full_data.dwi.values #10m wind direction
+if not os.path.exists('./processed/figs/'):
+    os.mkdir('./processed/figs/')
+else:
+    shutil.rmtree('./processed/figs/')
+    os.mkdir('./processed/figs/')
 
-# for i in tqdm(range(10)): #range(time.shape[0]):
-#     plt.figure(i+1)
-#     graph = plot2map(lon, lat, wind[0])
-#     plt.colorbar()
-#     plt.title(f'10m wind speed at {pd.to_datetime(time[0])}')
-#     name = str(pd.to_datetime(time[i])).replace(' ','_').replace(':','_')
-#     plt.savefig(f'./figures/{name}.png', bbox_inches='tight')
 
-fig = plt.figure()
-#llons, llats = np.meshgrid(lon, lat)
-cont = plt.contourf(lon, lat, wind[0])    # first image on screen
-plt.colorbar()
+full_data = xr.open_dataset(raw_file[0])
 
-# animation function
-def animate(i):
-    global cont
-    z = wind[i]
-    for c in cont.collections:
-        c.remove()  
-    cont = plt.contourf(lon, lat, z)
-    return cont
+lati      = full_data.latitude.values
+long      = full_data.longitude.values
 
-anim = animation.FuncAnimation(fig, animate, frames=100, repeat=False)
-writervideo = animation.FFMpegWriter(fps=60)
-#anim.save('mymovie.mp4', writer=writervideo)
-plt.show()
+swh       = full_data.swh.values
+plot2map(long,lati,swh[-1])
+breakpoint()
+
+
+# full_data = xr.concat((xr.open_dataset(file) for file in files), dim='time') 
+# lat = full_data.latitude.values
+# lon = full_data.longitude.values
+# swh = full_data.swh.values #significant heigh
+# time = full_data.time.values
+# wind = full_data.wind.values #10m wind speed
+# pp1d = full_data.pp1d.values #peak wave period
+# dwi = full_data.dwi.values #10m wind direction
+
+# # for i in tqdm(range(10)): #range(time.shape[0]):
+# #     plt.figure(i+1)
+# #     graph = plot2map(lon, lat, wind[0])
+# #     plt.colorbar()
+# #     plt.title(f'10m wind speed at {pd.to_datetime(time[0])}')
+# #     name = str(pd.to_datetime(time[i])).replace(' ','_').replace(':','_')
+# #     plt.savefig(f'./figures/{name}.png', bbox_inches='tight')
+
+# fig = plt.figure()
+# #llons, llats = np.meshgrid(lon, lat)
+# cont = plt.contourf(lon, lat, wind[0])    # first image on screen
+# plt.colorbar()
+
+# # animation function
+# def animate(i):
+#     global cont
+#     z = wind[i]
+#     for c in cont.collections:
+#         c.remove()  
+#     cont = plt.contourf(lon, lat, z)
+#     return cont
+
+# anim = animation.FuncAnimation(fig, animate, frames=100, repeat=False)
+# writervideo = animation.FFMpegWriter(fps=60)
+# #anim.save('mymovie.mp4', writer=writervideo)
+# plt.show()

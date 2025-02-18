@@ -3,8 +3,8 @@
 #################################################################################
 
 PROJECT_NAME = STOWP_SpaceTemp-wave-pred
-PYTHON_VERSION = 3.13.0
-PYTHON_INTERPRETER = python
+PYTHON_VERSION = 3.10.1
+PYTHON_INTERPRETER = python3
 
 #################################################################################
 # COMMANDS                                                                      #
