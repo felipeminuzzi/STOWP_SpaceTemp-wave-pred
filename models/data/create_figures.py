@@ -2,8 +2,10 @@ import os
 import glob
 import shutil
 import numpy as np
+import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from mpl_toolkits.basemap import Basemap
 from numpy.core.numeric import full 
 
@@ -13,6 +15,9 @@ from numpy.core.numeric import full
 # from matplotlib import animation
 
 def plot2map(lon, lat, dados):
+    """
+    Escrever
+    """
     map = Basemap(projection='cyl', llcrnrlon=lon.min(), 
                   llcrnrlat=lat.min(), urcrnrlon=lon.max(), 
                   urcrnrlat=lat.max(), resolution='h')
@@ -35,6 +40,19 @@ def plot2map(lon, lat, dados):
 
     return m
 
+def create_fig(data, lon, lat, tmp):
+    """
+    Escrever
+    """
+    
+    plt.figure()
+    graph = plot2map(lon,lat,data)
+    plt.colorbar()
+    name  = str(pd.to_datetime(tmp)).replace(' ','_').split('_')
+    date  = name[0]
+    hour  = name[1]
+    plt.savefig(f'./processed/figs/variable_{date}_{hour}.png', bbox_inches='tight')
+
 os.chdir('./data/')
 raw_path  = './raw/'
 raw_file  = glob.glob(raw_path + '*.nc')
@@ -50,10 +68,12 @@ full_data = xr.open_dataset(raw_file[0])
 
 lati      = full_data.latitude.values
 long      = full_data.longitude.values
-
+time      = full_data.valid_time.values
 swh       = full_data.swh.values
-plot2map(long,lati,swh[-1])
+
+[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(10))]
 breakpoint()
+
 
 
 # full_data = xr.concat((xr.open_dataset(file) for file in files), dim='time') 
@@ -66,12 +86,12 @@ breakpoint()
 # dwi = full_data.dwi.values #10m wind direction
 
 # # for i in tqdm(range(10)): #range(time.shape[0]):
-# #     plt.figure(i+1)
-# #     graph = plot2map(lon, lat, wind[0])
-# #     plt.colorbar()
-# #     plt.title(f'10m wind speed at {pd.to_datetime(time[0])}')
-# #     name = str(pd.to_datetime(time[i])).replace(' ','_').replace(':','_')
-# #     plt.savefig(f'./figures/{name}.png', bbox_inches='tight')
+    # plt.figure(i+1)
+    # graph = plot2map(lon, lat, wind[0])
+    # plt.colorbar()
+    # plt.title(f'10m wind speed at {pd.to_datetime(time[0])}')
+    # name = str(pd.to_datetime(time[i])).replace(' ','_').replace(':','_')
+    # plt.savefig(f'./figures/{name}.png', bbox_inches='tight')
 
 # fig = plt.figure()
 # #llons, llats = np.meshgrid(lon, lat)
