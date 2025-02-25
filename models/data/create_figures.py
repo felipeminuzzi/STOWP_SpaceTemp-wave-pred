@@ -11,7 +11,18 @@ from matplotlib import animation
 
 def plot2map(lon, lat, dados):
     """
-    Escrever
+    Create a 2D map consisting of the data specified in the lat x 
+    lon dimension.
+
+    *******************************************
+   
+    input:
+        - lon: longitude
+        - lat: latitude
+        - dados: data to plot
+
+    output:
+        - m: the figure
     """
     map = Basemap(projection='cyl', llcrnrlon=lon.min(), 
                   llcrnrlat=lat.min(), urcrnrlon=lon.max(), 
@@ -37,7 +48,19 @@ def plot2map(lon, lat, dados):
 
 def create_fig(data, lon, lat, tmp):
     """
-    Escrever
+    Save the figure created by 'plot2map' for each time step of the
+    dataset.
+
+    *******************************************
+   
+    input:
+        - lon: longitude
+        - lat: latitude
+        - data: numpy array of data to create plot
+        - tmp: index of the dataset representing the time step
+
+    output:
+        - saved figure in the specified path.
     """
     
     plt.figure()
