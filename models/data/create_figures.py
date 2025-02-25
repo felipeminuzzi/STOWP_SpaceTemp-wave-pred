@@ -47,6 +47,7 @@ def create_fig(data, lon, lat, tmp):
     date  = name[0]
     hour  = name[1]
     plt.savefig(f'./processed/figs/variable_{date}_{hour}.png', bbox_inches='tight')
+    plt.close()
 
 os.chdir('./data/')
 raw_path  = './raw/'
@@ -66,7 +67,7 @@ long      = full_data.longitude.values
 time      = full_data.valid_time.values
 swh       = full_data.swh.values
 
-[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(5000))]
+[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(500))]
 #breakpoint()
 
 
