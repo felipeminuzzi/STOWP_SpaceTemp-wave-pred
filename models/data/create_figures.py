@@ -7,12 +7,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mpl_toolkits.basemap import Basemap
-from numpy.core.numeric import full 
-
-# import matplotlib.pyplot as plt
-# from mpl_toolkits.basemap import Basemap
-# import matplotlib.gridspec as gridspec
-# from matplotlib import animation
+from matplotlib import animation
 
 def plot2map(lon, lat, dados):
     """
@@ -71,8 +66,8 @@ long      = full_data.longitude.values
 time      = full_data.valid_time.values
 swh       = full_data.swh.values
 
-[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(10))]
-breakpoint()
+[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(5000))]
+#breakpoint()
 
 
 
@@ -94,20 +89,19 @@ breakpoint()
     # plt.savefig(f'./figures/{name}.png', bbox_inches='tight')
 
 # fig = plt.figure()
-# #llons, llats = np.meshgrid(lon, lat)
-# cont = plt.contourf(lon, lat, wind[0])    # first image on screen
+# cont = plt.contourf(long, lati, swh[0])    # first image on screen
 # plt.colorbar()
 
-# # animation function
+# animation function
 # def animate(i):
 #     global cont
-#     z = wind[i]
+#     z = swh[i]
 #     for c in cont.collections:
 #         c.remove()  
-#     cont = plt.contourf(lon, lat, z)
+#     cont = plt.contourf(long, lati, z)
 #     return cont
 
-# anim = animation.FuncAnimation(fig, animate, frames=100, repeat=False)
+# anim = animation.FuncAnimation(fig, animate, frames=1000, repeat=False)
 # writervideo = animation.FFMpegWriter(fps=60)
-# #anim.save('mymovie.mp4', writer=writervideo)
+#anim.save('mymovie.mp4', writer=writervideo)
 # plt.show()
