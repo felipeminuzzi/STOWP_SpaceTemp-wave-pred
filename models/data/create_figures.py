@@ -90,7 +90,7 @@ long      = full_data.longitude.values
 time      = full_data.valid_time.values
 swh       = full_data.swh.values
 
-[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(500))]
+[create_fig(swh[i], long, lati, time[i]) for i in tqdm(range(5000))]
 #breakpoint()
 
 
