@@ -1,9 +1,5 @@
-black
-flake8
-jupyterlab
 matplotlib
 mkdocs
-notebook
 numpy
 pandas
 pip
