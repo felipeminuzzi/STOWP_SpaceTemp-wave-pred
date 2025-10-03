@@ -49,8 +49,14 @@ random_state = 42
 # the dominant wave regime (wind-sea vs. swell) at each location.
 feature_var = [
     'Wave_age',
-#    'Hs_mean_train',
-    'Steepness_mean_train' # <-- The new feature is now active
+    'Hs_mean_train',
+    'Steepness_mean_train',
+    'Hs', 'u10', 'v10', 'u10_mod',
+    'Peak_period', 'Peak_period_n',
+    'u10_n', 'Wave_age', 'Steepness',
+    'mdts','mdww','msqs','mwd1','mwd2','mwd3','mwd',
+    'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
+    'u10_cosine', 'u10_sine'    
 ]
 
 # Target variable for the regression.

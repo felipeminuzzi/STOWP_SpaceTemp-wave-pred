@@ -26,6 +26,13 @@ def _space_df(dataset, lat, lon):
         'u10': latlon.u10.values,
         'v10': latlon.v10.values,
         'Peak_period': latlon.pp1d.values,
+        'mwd': latlon.mwd.values,
+        'mdts': latlon.mdts.values,
+        'mdww': latlon.mdww.values,
+        'msqs': latlon.msqs.values,
+        'mwd1': latlon.mwd1.values,
+        'mwd2': latlon.mwd2.values,
+        'mwd3': latlon.mwd3.values,        
         'latitude': lat,
         'longitude': lon
     })
@@ -189,11 +196,11 @@ def main():
             'Hs', 'u10', 'v10', 'u10_mod',
             'Peak_period', 'Peak_period_n',
             'u10_n', 'Wave_age', 'y', 'Steepness',
+            'mdts','mdww','msqs','mwd1','mwd2','mwd3','mwd',
             'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
             'u10_cosine', 'u10_sine'
         ]
         df = df[final_cols]
-
         est_bytes = df.memory_usage(deep=True).sum()
         print(f"DataFrame pronto: shape={df.shape}, ~{est_bytes/1e6:.1f} MB em memória")
         print(f"Salvando em: {config.processed_df_path} (chunksize={CSV_CHUNKSIZE})")
