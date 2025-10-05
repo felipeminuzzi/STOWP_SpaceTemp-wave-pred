@@ -210,26 +210,26 @@ def plot_spatial_comparison(df_test, y_true, y_pred, mape):
     # Plot 1: Real Values
     ax1 = fig.add_subplot(1, 3, 1)
     m1 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax1)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h', ax=ax1)
     m1.drawcoastlines()
     m1.drawcountries()
     m1.fillcontinents(color='coral', lake_color='aqua')
     m1.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m1.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc1 = m1.scatter(lon, lat, c=spatial_df['y_true'], cmap='viridis', latlon=True, s=20, alpha=0.8)
+    sc1 = m1.contourf(lon, lat, c=spatial_df['y_true'], cmap='viridis', latlon=True, s=20, alpha=0.8)
     plt.colorbar(sc1, ax=ax1, label='True "y" Value')
     ax1.set_title('Ground Truth (Mean)')
 
     # Plot 2: Predicted Values
     ax2 = fig.add_subplot(1, 3, 2)
     m2 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax2)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h', ax=ax2)
     m2.drawcoastlines()
     m2.drawcountries()
     m2.fillcontinents(color='coral', lake_color='aqua')
     m2.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m2.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc2 = m2.scatter(lon, lat, c=spatial_df['y_pred'], cmap='viridis', latlon=True, s=20, alpha=0.8)
+    sc2 = m2.contourf(lon, lat, c=spatial_df['y_pred'], cmap='viridis', latlon=True, s=20, alpha=0.8)
     plt.colorbar(sc2, ax=ax2, label='Predicted "y" Value')
     ax2.set_title('CNN Prediction (Mean)')
 
@@ -242,7 +242,7 @@ def plot_spatial_comparison(df_test, y_true, y_pred, mape):
     m3.fillcontinents(color='coral', lake_color='aqua')
     m3.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m3.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc3 = m3.scatter(lon, lat, c=spatial_df['error'], cmap='coolwarm', latlon=True, s=20, alpha=0.8)
+    sc3 = m3.contourf(lon, lat, c=spatial_df['error'], cmap='coolwarm', latlon=True, s=20, alpha=0.8)
     plt.colorbar(sc3, ax=ax3, label='Prediction Error (True - Pred)')
     ax3.set_title('Prediction Error')
 
@@ -289,9 +289,9 @@ def main():
     model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
 
     print("\n5. Training the model...")
-    history = model.fit(X_train_cnn, y_train, epochs=100, batch_size=64,
+    history = model.fit(X_train_cnn, y_train, epochs=config.n_epochs, batch_size=64,
                         validation_data=(X_test_cnn, y_test),
-                        callbacks=[early_stopping, model_checkpoint], verbose=2)
+                        callbacks=[early_stopping, model_checkpoint], verbose=1)
 
     # 6. Evaluate the model and make predictions
     print("\n6. Evaluating the model...")
@@ -299,7 +299,7 @@ def main():
     y_pred = model.predict(X_test_cnn).flatten()
     mape = calculate_mape(y_test, y_pred)
     print(f"  Final Test Set MAPE: {mape:.2f}%")
-    breakpoint()
+
     # 7. Feature Importance Analysis
     # Prepare samples for explainers (using a subset for speed)
     n_explain_samples = 500

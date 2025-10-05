@@ -48,7 +48,6 @@ random_state = 42
 # 'Steepness_mean_train' feature to give PySR a better physical clue about
 # the dominant wave regime (wind-sea vs. swell) at each location.
 feature_var = [
-    'Wave_age',
     'Hs_mean_train',
     'Steepness_mean_train',
     'Hs', 'u10', 'v10', 'u10_mod',
@@ -83,7 +82,7 @@ basemap_resolution = 'i'
 MIN_COUNT_PER_CELL = 20
 SAVE_COUNT_MAPS = True
 
-
+n_epochs = 1
 # ===========================
 #  PYSR & METRICS
 # ===========================
