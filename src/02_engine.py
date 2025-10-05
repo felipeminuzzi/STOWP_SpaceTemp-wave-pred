@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from keras.models import Sequential
 from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout, Conv2D, MaxPooling2D
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+import matplotlib.tri as tri 
 # import shap
 
 G, EPS = 9.81, 1e-12
@@ -189,48 +190,47 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
 # =============================================================================
 def plot_spatial_comparison(df_test, y_true, y_pred, mape):
     """
-    Creates and saves a spatial comparison plot of real vs predicted values.
+    Creates and saves a spatial comparison using triangular contour plots.
     """
     print("\n8. Generating spatial comparison plots...")
-    
-    # Aggregate data by lat/lon
+
+    # Aggregate data by lat/lon to get mean values at each point
     plot_df = df_test[['latitude', 'longitude']].copy()
     plot_df['y_true'] = y_true
     plot_df['y_pred'] = y_pred
     plot_df['error'] = y_true - y_pred
-    
+
     spatial_df = plot_df.groupby(['latitude', 'longitude']).mean().reset_index()
-    
-    lat = spatial_df['latitude'].values
+
     lon = spatial_df['longitude'].values
-    
+    lat = spatial_df['latitude'].values
+
     fig = plt.figure(figsize=(20, 8))
     plt.suptitle(f'Spatio-Temporal Prediction Comparison (Overall MAPE: {mape:.2f}%)', fontsize=16)
 
     # Plot 1: Real Values
     ax1 = fig.add_subplot(1, 3, 1)
     m1 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h', ax=ax1)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax1)
     m1.drawcoastlines()
-    m1.drawcountries()
     m1.fillcontinents(color='coral', lake_color='aqua')
     m1.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m1.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc1 = m1.contourf(lon, lat, c=spatial_df['y_true'], cmap='viridis', latlon=True, s=20, alpha=0.8)
-    plt.colorbar(sc1, ax=ax1, label='True "y" Value')
+    # Use tricontourf for direct plotting from scattered data
+    cf1 = m1.tricontourf(lon, lat, spatial_df['y_true'], cmap='viridis', latlon=True, levels=15)
+    plt.colorbar(cf1, ax=ax1, label='True "y" Value')
     ax1.set_title('Ground Truth (Mean)')
 
     # Plot 2: Predicted Values
     ax2 = fig.add_subplot(1, 3, 2)
     m2 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h', ax=ax2)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax2)
     m2.drawcoastlines()
-    m2.drawcountries()
     m2.fillcontinents(color='coral', lake_color='aqua')
     m2.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m2.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc2 = m2.contourf(lon, lat, c=spatial_df['y_pred'], cmap='viridis', latlon=True, s=20, alpha=0.8)
-    plt.colorbar(sc2, ax=ax2, label='Predicted "y" Value')
+    cf2 = m2.tricontourf(lon, lat, spatial_df['y_pred'], cmap='viridis', latlon=True, levels=15)
+    plt.colorbar(cf2, ax=ax2, label='Predicted "y" Value')
     ax2.set_title('CNN Prediction (Mean)')
 
     # Plot 3: Error (True - Predicted)
@@ -238,18 +238,17 @@ def plot_spatial_comparison(df_test, y_true, y_pred, mape):
     m3 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
                  llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax3)
     m3.drawcoastlines()
-    m3.drawcountries()
     m3.fillcontinents(color='coral', lake_color='aqua')
     m3.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m3.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    sc3 = m3.contourf(lon, lat, c=spatial_df['error'], cmap='coolwarm', latlon=True, s=20, alpha=0.8)
-    plt.colorbar(sc3, ax=ax3, label='Prediction Error (True - Pred)')
+    cf3 = m3.tricontourf(lon, lat, spatial_df['error'], cmap='coolwarm', latlon=True, levels=15)
+    plt.colorbar(cf3, ax=ax3, label='Prediction Error (True - Pred)')
     ax3.set_title('Prediction Error')
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig("spatio_temporal_comparison.png")
     plt.close()
-    print("  Spatial comparison plot saved to spatio_temporal_comparison.png")
+    print("  Spatial contour plot saved to spatio_temporal_comparison.png")
 
 
 def main():
