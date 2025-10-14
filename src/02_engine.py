@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +12,9 @@ from keras.models import Sequential
 from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout, Conv2D, MaxPooling2D
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.tri as tri 
-# import shap
+
+# Set up matplotlib configuration
+plt.rcParams["figure.figsize"] = (18, 4)
 
 G, EPS = 9.81, 1e-12
 
@@ -42,6 +45,28 @@ def calculate_mape(y_true: np.ndarray, y_pred: np.ndarray, epsilon: float = 1e-6
     y_true_safe = np.where(zero_mask, epsilon, y_true)
 
     return np.mean(np.abs((y_true - y_pred) / y_true_safe)) * 100
+
+def calculate_relative_error(y_true: np.ndarray, y_pred: np.ndarray, epsilon: float = 1e-6) -> np.ndarray:
+    """
+    Calculates the element-wise relative error in percentage, avoiding division by zero.
+    """
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    
+    # Create a safe denominator
+    y_true_safe = np.where(y_true == 0, epsilon, y_true)
+    
+    return np.abs((y_true - y_pred) / y_true_safe) * 100
+
+def format_and_create_path(path: str) -> str:
+    """
+    Formats the path string and creates the directory if it doesn't exist.
+    Ensures the path ends with a '/'.
+    """
+    if not path.endswith('/'):
+        path = path + '/'
+
+    os.makedirs(path, exist_ok=True)
+    return path
 
 # =============================================================================
 # SECTION 2: DATA LOADING AND PREPARATION
@@ -75,8 +100,10 @@ def create_climatology_feature(train_df, test_df):
     global_steep_mean = train_df['Steepness'].mean()
     train_df = train_df.merge(hs_clim, on=['latitude', 'longitude'], how='left').merge(steep_clim, on=['latitude', 'longitude'], how='left')
     test_df = test_df.merge(hs_clim, on=['latitude', 'longitude'], how='left').merge(steep_clim, on=['latitude', 'longitude'], how='left')
-    train_df['Hs_mean_train'].fillna(global_hs_mean, inplace=True); test_df['Hs_mean_train'].fillna(global_hs_mean, inplace=True)
-    train_df['Steepness_mean_train'].fillna(global_steep_mean, inplace=True); test_df['Steepness_mean_train'].fillna(global_steep_mean, inplace=True)
+    train_df['Hs_mean_train'] = train_df['Hs_mean_train'].fillna(global_hs_mean)
+    test_df['Hs_mean_train'] = test_df['Hs_mean_train'].fillna(global_hs_mean)
+    train_df['Steepness_mean_train'] = train_df['Steepness_mean_train'].fillna(global_steep_mean) 
+    test_df['Steepness_mean_train'] = test_df['Steepness_mean_train'].fillna(global_steep_mean)
 
     return train_df, test_df
 
@@ -188,7 +215,7 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
 # =============================================================================
 # SECTION 5: VISUALIZATION
 # =============================================================================
-def plot_spatial_comparison(df_test, y_true, y_pred, mape):
+def plot_spatial_comparison(df_test, y_true, y_pred, pth):
     """
     Creates and saves a spatial comparison using triangular contour plots.
     """
@@ -198,65 +225,67 @@ def plot_spatial_comparison(df_test, y_true, y_pred, mape):
     plot_df = df_test[['latitude', 'longitude']].copy()
     plot_df['y_true'] = y_true
     plot_df['y_pred'] = y_pred
-    plot_df['error'] = y_true - y_pred
+    relative_error    = calculate_relative_error(y_true, y_pred)
+    mape_value        = calculate_mape(y_true, y_pred)
+    plot_df['error']  = relative_error
 
     spatial_df = plot_df.groupby(['latitude', 'longitude']).mean().reset_index()
 
-    lon = spatial_df['longitude'].values
-    lat = spatial_df['latitude'].values
+    lon = spatial_df['longitude'].unique()
+    lat = spatial_df['latitude'].unique()
 
-    fig = plt.figure(figsize=(20, 8))
-    plt.suptitle(f'Spatio-Temporal Prediction Comparison (Overall MAPE: {mape:.2f}%)', fontsize=16)
+    llats, llons = np.meshgrid(lat, lon)
 
+    fig = plt.figure()
     # Plot 1: Real Values
-    ax1 = fig.add_subplot(1, 3, 1)
+    plt.subplot(1, 3, 1)
+    plt.title('Ground Truth')
     m1 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax1)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
     m1.drawcoastlines()
     m1.fillcontinents(color='coral', lake_color='aqua')
     m1.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m1.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
     # Use tricontourf for direct plotting from scattered data
-    cf1 = m1.tricontourf(lon, lat, spatial_df['y_true'], cmap='viridis', latlon=True, levels=15)
-    plt.colorbar(cf1, ax=ax1, label='True "y" Value')
-    ax1.set_title('Ground Truth (Mean)')
+    cf1 = m1.contourf(llons, llats, spatial_df['y_true'].values.reshape(len(lat), len(lon)), cmap='viridis', latlon=True, levels=10)
+    plt.colorbar(cf1)    
 
     # Plot 2: Predicted Values
-    ax2 = fig.add_subplot(1, 3, 2)
+    plt.subplot(1, 3, 2)
+    plt.title('CNN Prediction')
     m2 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax2)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
     m2.drawcoastlines()
     m2.fillcontinents(color='coral', lake_color='aqua')
     m2.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m2.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    cf2 = m2.tricontourf(lon, lat, spatial_df['y_pred'], cmap='viridis', latlon=True, levels=15)
-    plt.colorbar(cf2, ax=ax2, label='Predicted "y" Value')
-    ax2.set_title('CNN Prediction (Mean)')
+    cf2 = m2.contourf(llons, llats, spatial_df['y_pred'].values.reshape(len(lat), len(lon)), cmap='viridis', latlon=True, levels=10)
+    plt.colorbar(cf2)
 
     # Plot 3: Error (True - Predicted)
-    ax3 = fig.add_subplot(1, 3, 3)
+    plt.subplot(1, 3, 3)
+    plt.title('$\Delta_{rel}$' + f' -- MAPE: {round(mape_value, 2)}')
     m3 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='i', ax=ax3)
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
     m3.drawcoastlines()
     m3.fillcontinents(color='coral', lake_color='aqua')
     m3.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m3.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    cf3 = m3.tricontourf(lon, lat, spatial_df['error'], cmap='coolwarm', latlon=True, levels=15)
-    plt.colorbar(cf3, ax=ax3, label='Prediction Error (True - Pred)')
-    ax3.set_title('Prediction Error')
+    cf3 = m3.contourf(llons, llats, spatial_df['error'].values.reshape(len(lat), len(lon)), cmap='coolwarm', latlon=True, levels=10)
+    plt.colorbar(cf3)
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    plt.savefig("spatio_temporal_comparison.png")
+    plt.savefig(f'{pth}spatio_temporal_comparison.png')
     plt.close()
     print("  Spatial contour plot saved to spatio_temporal_comparison.png")
-
 
 def main():
     """
     Main function to run the spatio-temporal prediction workflow.
     """
     train_set, test_set = load_and_split_data(config)
-
+    save_path = format_and_create_path(config.results_path + f'/{config.save_name}')
+    
     if 'Hs_mean_train' in config.feature_var or 'Steepness_mean_train' in config.feature_var:
         train_set, test_set = create_climatology_feature(train_set, test_set)
 
@@ -283,7 +312,7 @@ def main():
     model = build_cnn_model(input_shape)
 
     # Callbacks for training
-    model_path = 'best_cnn_model.keras'
+    model_path = f'{save_path}best_cnn_model.keras'
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True)
     model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
 
@@ -322,12 +351,12 @@ def main():
     plt.title('Integrated Gradients Feature Importance')
     plt.ylabel('Attribution')
     plt.tight_layout()
-    plt.savefig('integrated_gradients_importance.png')
+    plt.savefig(f'{save_path}integrated_gradients_importance.png')
     plt.close()
     print("  Integrated Gradients plot saved to integrated_gradients_importance.png")
 
     # 8. Generate and save visualizations
-    plot_spatial_comparison(test_set, y_test.values, y_pred, mape)
+    plot_spatial_comparison(test_set, y_test.values, y_pred, save_path)
     
     print("\nWorkflow completed successfully! ✨")
 
