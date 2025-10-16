@@ -1,5 +1,7 @@
 # SpaceTemporal Ocean Wave Prediction
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A neural network framework to predict ocean wave variables in 2D domains
 
 ## Project Organization
