@@ -285,7 +285,8 @@ def main():
     """
     train_set, test_set = load_and_split_data(config)
     save_path = format_and_create_path(config.results_path + f'/{config.save_name}')
-    
+    full_path = format_and_create_path(f'{save_path}{config.add_name_version}')
+
     if 'Hs_mean_train' in config.feature_var or 'Steepness_mean_train' in config.feature_var:
         train_set, test_set = create_climatology_feature(train_set, test_set)
 
@@ -366,12 +367,12 @@ def main():
     plt.title('Integrated Gradients Feature Importance')
     plt.ylabel('Attribution')
     plt.tight_layout()
-    plt.savefig(f'{save_path}integrated_gradients_importance.png')
+    plt.savefig(f'{full_path}integrated_gradients_importance.png')
     plt.close()
     print("  Integrated Gradients plot saved to integrated_gradients_importance.png")
 
     # 8. Generate and save visualizations
-    plot_spatial_comparison(test_set, y_test.values, y_pred, save_path)
+    plot_spatial_comparison(test_set, y_test.values, y_pred, full_path)
     
     print("\nWorkflow completed successfully! ✨")
 
