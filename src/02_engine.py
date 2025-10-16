@@ -310,19 +310,32 @@ def main():
     X_train_cnn = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1], 1))
     X_test_cnn = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1], 1))
 
-    # 5. Build and train the CNN model
+    # 5. Build and train the CNN model OR load a pre-trained one
     input_shape = (X_train_cnn.shape[1], X_train_cnn.shape[2], X_train_cnn.shape[3])
-    model = build_cnn_model(input_shape)
-
-    # Callbacks for training
     model_path = f'{save_path}best_cnn_model.keras'
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True)
-    model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
-    
-    print("\n5. Training the model...")
-    history = model.fit(X_train_cnn, y_train, epochs=config.n_epochs, batch_size=64,
-                        validation_split = 0.2,
-                        callbacks=[early_stopping, model_checkpoint], verbose=1)
+
+    if config.load_trained_model:
+        print(f"\n5. Loading pre-trained model from: {model_path}")
+        try:
+            model = tf.keras.models.load_model(model_path)
+            print("   Model loaded successfully.")
+            model.summary()
+        except (IOError, OSError) as e:
+            print(f"   FATAL: Error loading model file. {e}")
+            print("   Please check the model path in your config or set 'load_trained_model' to False to train a new one.")
+            return # Exit if model not found
+    else:
+        # Build a new model if not loading one
+        model = build_cnn_model(input_shape)
+
+        # Callbacks for training
+        early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True)
+        model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
+        
+        print("\n5. Training a new model...")
+        history = model.fit(X_train_cnn, y_train, epochs=config.n_epochs, batch_size=64,
+                            validation_split = 0.2,
+                            callbacks=[early_stopping, model_checkpoint], verbose=1)
 
     # 6. Evaluate the model and make predictions
     print("\n6. Evaluating the model...")
@@ -333,9 +346,8 @@ def main():
 
     # 7. Feature Importance Analysis
     # Prepare samples for explainers (using a subset for speed)
-    n_explain_samples = 1000
-    train_sample_indices = np.random.choice(X_train_cnn.shape[0], n_explain_samples, replace=False)
-    test_sample_indices = np.random.choice(X_test_cnn.shape[0], n_explain_samples, replace=False)
+    train_sample_indices = np.random.choice(X_train_cnn.shape[0], config.n_explain_samples, replace=False)
+    test_sample_indices = np.random.choice(X_test_cnn.shape[0], config.n_explain_samples, replace=False)
     
     X_train_sample_cnn = X_train_cnn[train_sample_indices]
     X_test_sample_cnn = X_test_cnn[test_sample_indices]

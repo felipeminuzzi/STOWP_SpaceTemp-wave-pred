@@ -22,6 +22,7 @@ processed_df_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'era5_struct
 # Path for the results
 results_path      = os.path.join(PROJECT_ROOT, 'results')
 save_name         = 'first_train_v0'
+add_name_version  = 'IG_5000'
 
 # ===========================
 #  MODEL TRAINING
@@ -37,6 +38,7 @@ test_initial_date  = '2022-12-31'
 n_epochs = 200
 random_state = 42
 N_SAMPLES = 50_000
+n_explain_samples = 5000
 # ===========================
 #  FEATURES & TARGET
 # ===========================
@@ -54,6 +56,7 @@ feature_var = [
 
 # Target variable for the regression.
 target_var = 'y'
+load_trained_model = True
 # ===========================
 #  DUAL-MODEL GATING
 # ===========================
