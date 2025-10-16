@@ -27,13 +27,14 @@ save_name         = 'first_train_v0'
 #  MODEL TRAINING
 # ===========================
 new_train      = True
+use_sampling   = False
 
 # ===========================
 #  DATA SPLIT & SAMPLING
 # ===========================
 train_initial_date = '2018-01-01'
 test_initial_date  = '2022-12-31'
-n_epochs = 1
+n_epochs = 200
 random_state = 42
 N_SAMPLES = 50_000
 # ===========================
@@ -43,13 +44,11 @@ N_SAMPLES = 50_000
 # 'Steepness_mean_train' feature to give PySR a better physical clue about
 # the dominant wave regime (wind-sea vs. swell) at each location.
 feature_var = [
-    'Hs_mean_train',
-    'Steepness_mean_train',
-    'Hs', 'u10', 'v10', 'u10_mod',
-    'Peak_period', 'Peak_period_n',
-    'u10_n', 'Wave_age', 'Steepness',
-    'mdts','mdww','msqs','mwd1','mwd2','mwd3','mwd',
+    'Hs_mean_train','Steepness_mean_train',
+    'Peak_period_n','u10_n', 'Wave_age', 
     'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
+    'mdts_cos', 'mdts_sin', 'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
+    'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 'mwd_cos', 'mwd_sin',    
     'u10_cosine', 'u10_sine'    
 ]
 

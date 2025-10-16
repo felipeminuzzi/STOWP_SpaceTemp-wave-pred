@@ -175,12 +175,18 @@ def main():
         df['y'] = df['Hs'] / (df['u10_n'] + EPS)
         pbar.update(1)
 
-        # Step 2: Steepness
+        # Step 2
+        for col in ['mdts','mdww','mwd1','mwd2','mwd3','mwd']:
+            df[f'{col}_cos'] = np.cos(np.deg2rad(df[f'{col}']))
+            df[f'{col}_sin'] = np.sin(np.deg2rad(df[f'{col}']))
+        pbar.update(1)
+ 
+        # Step 3: Steepness
         df['Wavelength'] = (G * df['Peak_period']**2) / (2 * np.pi)
         df['Steepness'] = df['Hs'] / (df['Wavelength'] + EPS)
         pbar.update(1)
 
-        # Step 3: Normalization
+        # Step 4: Normalization
         lat_min, lat_max = df['latitude'].min(),  df['latitude'].max()
         lon_min, lon_max = df['longitude'].min(), df['longitude'].max()
         df['lat_norm'] = (df['latitude']  - lat_min) / (lat_max - lat_min + EPS)
@@ -190,7 +196,7 @@ def main():
         df['lon_cos'] = np.cos(lon_rad)
         pbar.update(1)
 
-        # Step 4: Finalize and save
+        # Step 5: Finalize and save
         final_cols = [
             'Time', 'latitude', 'longitude',
             'Hs', 'u10', 'v10', 'u10_mod',
@@ -198,7 +204,10 @@ def main():
             'u10_n', 'Wave_age', 'y', 'Steepness',
             'mdts','mdww','msqs','mwd1','mwd2','mwd3','mwd',
             'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
-            'u10_cosine', 'u10_sine'
+            'u10_cosine', 'u10_sine','mdts_cos', 'mdts_sin', 
+            'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
+            'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 
+            'mwd_cos', 'mwd_sin'
         ]
         df = df[final_cols]
         est_bytes = df.memory_usage(deep=True).sum()

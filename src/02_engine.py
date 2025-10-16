@@ -271,7 +271,7 @@ def plot_spatial_comparison(df_test, y_true, y_pred, pth):
     m3.fillcontinents(color='coral', lake_color='aqua')
     m3.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
     m3.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    cf3 = m3.contourf(llons, llats, spatial_df['error'].values.reshape(len(lat), len(lon)), cmap='coolwarm', latlon=True, levels=10)
+    cf3 = m3.contourf(llons, llats, spatial_df['error'].values.reshape(len(lat), len(lon)), cmap='Reds', latlon=True, levels=10)
     plt.colorbar(cf3)
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
@@ -289,7 +289,10 @@ def main():
     if 'Hs_mean_train' in config.feature_var or 'Steepness_mean_train' in config.feature_var:
         train_set, test_set = create_climatology_feature(train_set, test_set)
 
-    train_set_sampled, thresholds = stratified_sample(train_set, config)
+    if config.use_sampling:
+        train_set_sampled, thresholds = stratified_sample(train_set, config)
+        
+    train_set_sampled = train_set.copy()
     ensure_cols_exist(train_set_sampled, config.feature_var, "in sampled train set")
     ensure_cols_exist(test_set, config.feature_var, "in test set")
    
@@ -306,7 +309,7 @@ def main():
     # We treat the feature vector as a grid of size 1 x num_features with 1 channel.
     X_train_cnn = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1], 1))
     X_test_cnn = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1], 1))
-    
+
     # 5. Build and train the CNN model
     input_shape = (X_train_cnn.shape[1], X_train_cnn.shape[2], X_train_cnn.shape[3])
     model = build_cnn_model(input_shape)
@@ -315,10 +318,10 @@ def main():
     model_path = f'{save_path}best_cnn_model.keras'
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True)
     model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
-
+    
     print("\n5. Training the model...")
     history = model.fit(X_train_cnn, y_train, epochs=config.n_epochs, batch_size=64,
-                        validation_data=(X_test_cnn, y_test),
+                        validation_split = 0.2,
                         callbacks=[early_stopping, model_checkpoint], verbose=1)
 
     # 6. Evaluate the model and make predictions
@@ -330,7 +333,7 @@ def main():
 
     # 7. Feature Importance Analysis
     # Prepare samples for explainers (using a subset for speed)
-    n_explain_samples = 500
+    n_explain_samples = 1000
     train_sample_indices = np.random.choice(X_train_cnn.shape[0], n_explain_samples, replace=False)
     test_sample_indices = np.random.choice(X_test_cnn.shape[0], n_explain_samples, replace=False)
     
