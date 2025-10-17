@@ -21,8 +21,8 @@ raw_df_path       = os.path.join(PROJECT_ROOT, 'data', 'raw', 'dados_full2018_20
 processed_df_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'era5_structured_weighted.csv')
 # Path for the results
 results_path      = os.path.join(PROJECT_ROOT, 'results')
-save_name         = 'train_v1'
-add_name_version  = 'IG_1000'
+save_name         = 'train_v2'
+add_name_version  = 'all_nonadim_feat'
 
 # ===========================
 #  MODEL TRAINING
@@ -45,15 +45,14 @@ n_explain_samples = 1000
 # This is the key change for our new experiment. We are adding the powerful
 # 'Steepness_mean_train' feature to give PySR a better physical clue about
 # the dominant wave regime (wind-sea vs. swell) at each location.
-# feature_var = [
-#     'Hs_mean_train','Steepness_mean_train',
-#     'Peak_period_n','u10_n', 'Wave_age', 
-#     'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
-#     'mdts_cos', 'mdts_sin', 'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
-#     'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 'mwd_cos', 'mwd_sin',    
-#     'u10_cosine', 'u10_sine'    
-# ]
-feature_var = ['u10_cosine', 'u10_sine', 'Wave_age']
+feature_var = [
+    'Hs_mean_train','Steepness_mean_train','Wave_age', 
+    'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
+    'mdts_cos', 'mdts_sin', 'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
+    'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 'mwd_cos', 'mwd_sin',    
+    'u10_cosine', 'u10_sine'    
+]
+
 # Target variable for the regression.
 target_var = 'y'
 # ===========================
