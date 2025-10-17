@@ -27,7 +27,7 @@ add_name_version  = 'all_nonadim_feat'
 # ===========================
 #  MODEL TRAINING
 # ===========================
-load_trained_model = False
+load_trained_model = True
 use_sampling   = False
 
 # ===========================

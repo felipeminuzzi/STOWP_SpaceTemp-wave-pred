@@ -217,7 +217,7 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
 # =============================================================================
 def plot_spatial_comparison(df_test, y_true, y_pred, pth):
     """
-    Creates and saves a spatial comparison using triangular contour plots.
+    Creates and saves a spatial comparison using contour plots.
     """
     print("\n8. Generating spatial comparison plots...")
 
@@ -234,50 +234,96 @@ def plot_spatial_comparison(df_test, y_true, y_pred, pth):
     lon = spatial_df['longitude'].unique()
     lat = spatial_df['latitude'].unique()
 
-    llats, llons = np.meshgrid(lat, lon)
-
     fig = plt.figure()
     # Plot 1: Real Values
     plt.subplot(1, 3, 1)
-    plt.title('Ground Truth')
-    m1 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
-    m1.drawcoastlines()
-    m1.fillcontinents(color='coral', lake_color='aqua')
-    m1.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
-    m1.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    # Use tricontourf for direct plotting from scattered data
-    cf1 = m1.contourf(llons, llats, spatial_df['y_true'].values.reshape(len(lat), len(lon)), cmap='viridis', latlon=True, levels=10)
-    plt.colorbar(cf1)    
+    generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, 'Ground Truth', 'viridis')
 
     # Plot 2: Predicted Values
     plt.subplot(1, 3, 2)
-    plt.title('CNN Prediction')
-    m2 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
-    m2.drawcoastlines()
-    m2.fillcontinents(color='coral', lake_color='aqua')
-    m2.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
-    m2.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    cf2 = m2.contourf(llons, llats, spatial_df['y_pred'].values.reshape(len(lat), len(lon)), cmap='viridis', latlon=True, levels=10)
-    plt.colorbar(cf2)
+    generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, 'CNN Prediction', 'viridis')
 
     # Plot 3: Error (True - Predicted)
     plt.subplot(1, 3, 3)
-    plt.title('$\Delta_{rel}$' + f' -- MAPE: {round(mape_value, 2)}')
-    m3 = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
-                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
-    m3.drawcoastlines()
-    m3.fillcontinents(color='coral', lake_color='aqua')
-    m3.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
-    m3.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
-    cf3 = m3.contourf(llons, llats, spatial_df['error'].values.reshape(len(lat), len(lon)), cmap='Reds', latlon=True, levels=10)
-    plt.colorbar(cf3)
+    generate_map(spatial_df['error'].values.reshape(len(lat), len(lon)), lat, lon, '$\Delta_{rel}$' + f' -- MAPE: {round(mape_value, 2)}', 'Reds')
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(f'{pth}spatio_temporal_comparison.png')
     plt.close()
     print("  Spatial contour plot saved to spatio_temporal_comparison.png")
+
+
+def generate_map(data, lat, lon, fig_title,def_cmap):
+
+    llats, llons = np.meshgrid(lat, lon)
+
+    plt.title(fig_title)
+    m = Basemap(projection='merc', llcrnrlat=lat.min()-1, urcrnrlat=lat.max()+1,
+                 llcrnrlon=lon.min()-1, urcrnrlon=lon.max()+1, resolution='h')
+    m.drawcoastlines()
+    m.fillcontinents(color='coral', lake_color='aqua')
+    m.drawparallels(np.arange(lat.min(), lat.max()+1, 5), labels=[1,0,0,0])
+    m.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
+    cf = m.contourf(llons, llats, data, cmap=def_cmap, latlon=True, levels=10)
+    plt.colorbar(cf)  
+
+    return cf
+
+def plot_wave_age_comparison(df_test, y_true, y_pred, cfg, pth):
+    """
+    Generates a 2x3 plot comparing results for Wind Sea vs. Swell conditions.
+    """
+    print("\n9. Generating plots separated by Wave Age (Wind Sea vs. Swell)...")
+    
+    # 1. Create a combined DataFrame for easier filtering
+    plot_df = df_test[['latitude', 'longitude', 'Wave_age']].copy()
+    plot_df['y_true'] = y_true
+    plot_df['y_pred'] = y_pred
+
+    # 2. Define the conditions and filter the data
+    wind_sea_condition = plot_df['Wave_age'] <= cfg.piecewise_wa_young
+    swell_condition = plot_df['Wave_age'] > cfg.piecewise_wa_old
+    
+    datasets = {
+        'Wind Sea': plot_df[wind_sea_condition],
+        'Swell': plot_df[swell_condition]
+    }
+    
+    # 3. Create the 2x3 subplot grid
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    plt.suptitle('Prediction Performance by Wave Condition', fontsize=16)
+
+    # 4. Loop through each condition (Wind Sea, Swell) and plot
+    for i, (condition_name, df_subset) in enumerate(datasets.items()):
+        if df_subset.empty:
+            print(f"  [Warning] No data found for '{condition_name}' condition. Skipping this row.")
+            continue
+
+        # Aggregate data spatially
+        df_subset['error'] = calculate_relative_error(df_subset['y_true'], df_subset['y_pred'])
+        spatial_df = df_subset.groupby(['latitude', 'longitude']).mean().reset_index()
+        
+        lon = spatial_df['longitude'].unique()
+        lat = spatial_df['latitude'].unique()
+        
+        # Calculate MAPE for the subset
+        mape_subset = calculate_mape(df_subset['y_true'], df_subset['y_pred'])
+
+        # --- Plot Ground Truth ---
+        plt.sca(axes[i, 0])
+        generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, f'Ground Truth ({condition_name})', 'viridis')
+
+        # --- Plot CNN Prediction ---
+        plt.sca(axes[i, 1])
+        generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, f'CNN Prediction ({condition_name})', 'viridis')
+
+        # --- Plot Relative Error ---
+        plt.sca(axes[i, 2])
+        error_title = f'$\\Delta_{{rel}}$ ({condition_name}) -- MAPE: {mape_subset:.2f}%'
+        generate_map(spatial_df['error'].values.reshape(len(lat), len(lon)), lat, lon, error_title, 'Reds')
+        
+    plt.savefig(f'{pth}wave_age_comparison.png')
+    plt.close()
+    print("  Wave age comparison plot saved to wave_age_comparison.png")
 
 def main():
     """
@@ -373,6 +419,7 @@ def main():
 
     # 8. Generate and save visualizations
     plot_spatial_comparison(test_set, y_test.values, y_pred, full_path)
+    plot_wave_age_comparison(test_set, y_test.values, y_pred, config, full_path)
     
     print("\nWorkflow completed successfully! ✨")
 
