@@ -27,7 +27,7 @@ add_name_version  = 'all_nonadim_feat_IG5000'
 # ===========================
 #  MODEL TRAINING
 # ===========================
-load_trained_model = False
+load_trained_model = True
 use_sampling   = False
 
 # ===========================
@@ -38,7 +38,7 @@ test_initial_date  = '2022-12-31'
 n_epochs = 200
 random_state = 42
 N_SAMPLES = 50_000
-n_explain_samples = 5000 #number of samples to integrated gradients
+n_explain_samples = 1000 #number of samples to integrated gradients
 # ===========================
 #  FEATURES & TARGET
 # ===========================

@@ -401,7 +401,7 @@ def main():
     X_test_sample_cnn = X_test_cnn[test_sample_indices]
     
     # # SHAP
-    # explain_model_with_shap(model, X_train_sample_cnn, X_test_sample_cnn, config.feature_var)
+    explain_model_with_shap(model, X_train_sample_cnn, X_test_sample_cnn, config.feature_var)
     
     # Integrated Gradients
     baseline = np.zeros(input_shape) # A zero baseline is common
