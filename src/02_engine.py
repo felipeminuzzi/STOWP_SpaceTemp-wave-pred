@@ -12,6 +12,7 @@ from keras.models import Sequential
 from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout, Conv2D, MaxPooling2D
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 import matplotlib.tri as tri 
+import shap
 
 # Set up matplotlib configuration
 plt.rcParams["figure.figsize"] = (18, 4)
@@ -194,23 +195,23 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
     return np.mean(attributions, axis=0)
 
 
-# def explain_model_with_shap(model, X_train_sample, X_test_sample, feature_names):
-#     """Explains the model predictions using SHAP and plots the results."""
-#     print("\n7. Explaining model with SHAP...")
-#     # Use DeepExplainer for TF/Keras models
-#     explainer = shap.DeepExplainer(model, X_train_sample)
-#     shap_values = explainer.shap_values(X_test_sample)
+def explain_model_with_shap(model, X_train_sample, X_test_sample, feature_names):
+    """Explains the model predictions using SHAP and plots the results."""
+    print("\n7. Explaining model with SHAP...")
+    # Use DeepExplainer for TF/Keras models
+    explainer = shap.DeepExplainer(model, X_train_sample)
+    shap_values = explainer.shap_values(X_test_sample)
     
-#     # Generate summary plot
-#     plt.figure()
-#     shap.summary_plot(shap_values[0].reshape(X_test_sample.shape[0], -1), 
-#                       X_test_sample.reshape(X_test_sample.shape[0], -1), 
-#                       feature_names=feature_names, show=False)
-#     plt.title('SHAP Feature Importance')
-#     plt.tight_layout()
-#     plt.savefig('shap_feature_importance.png')
-#     plt.close()
-#     print("  SHAP summary plot saved to shap_feature_importance.png")
+    # Generate summary plot
+    plt.figure()
+    shap.summary_plot(shap_values[0].reshape(X_test_sample.shape[0], -1), 
+                      X_test_sample.reshape(X_test_sample.shape[0], -1), 
+                      feature_names=feature_names, show=False)
+    plt.title('SHAP Feature Importance')
+    plt.tight_layout()
+    plt.savefig('shap_feature_importance.png')
+    plt.close()
+    print("  SHAP summary plot saved to shap_feature_importance.png")
 
 # =============================================================================
 # SECTION 5: VISUALIZATION
