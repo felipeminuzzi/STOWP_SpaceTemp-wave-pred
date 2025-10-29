@@ -16,13 +16,13 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #  PATHS (Now built from PROJECT_ROOT)
 # ===========================
 # Path to the raw NetCDF file
-raw_df_path       = os.path.join(PROJECT_ROOT, 'data', 'raw', 'dados_full2018_2023.nc')
+raw_df_path       = os.path.join(PROJECT_ROOT, 'data', 'raw', 'dados_pacifico_norte2018_2023.nc')
 # Path for the processed CSV data
 processed_df_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'era5_structured_weighted.csv')
 # Path for the results
 results_path      = os.path.join(PROJECT_ROOT, 'results')
 save_name         = 'train_v2'
-add_name_version  = 'six_IG_best'
+add_name_version  = 'north_pacific'
 
 # ===========================
 #  MODEL TRAINING
@@ -45,10 +45,16 @@ n_explain_samples = 1000 #number of samples to integrated gradients
 # This is the key change for our new experiment. We are adding the powerful
 # 'Steepness_mean_train' feature to give PySR a better physical clue about
 # the dominant wave regime (wind-sea vs. swell) at each location.
+# feature_var = [
+#    'Wave_age', 'u10_sine', 'mwd_sin', 'mwd1_sin', 'mdww_cos', 'mdts_sin'
+# ]
 feature_var = [
-   'Wave_age', 'u10_sine', 'mwd_sin', 'mwd1_sin', 'mdww_cos', 'mdts_sin'
+    'Hs_mean_train','Steepness_mean_train','Wave_age',
+    'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
+    'mdts_cos', 'mdts_sin', 'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
+    'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 'mwd_cos', 'mwd_sin',
+    'u10_cosine', 'u10_sine'
 ]
-
 # Target variable for the regression.
 target_var = 'y'
 # ===========================
@@ -69,3 +75,10 @@ basemap_resolution = 'i'
 MIN_COUNT_PER_CELL = 20
 SAVE_COUNT_MAPS = True
 
+# feature_var = [
+#     'Hs_mean_train','Steepness_mean_train','Wave_age',
+#     'lat_norm', 'lon_norm', 'lon_sin', 'lon_cos',
+#     'mdts_cos', 'mdts_sin', 'mdww_cos', 'mdww_sin', 'mwd1_cos', 'mwd1_sin',
+#     'mwd2_cos', 'mwd2_sin', 'mwd3_cos', 'mwd3_sin', 'mwd_cos', 'mwd_sin',
+#     'u10_cosine', 'u10_sine'
+# ]
