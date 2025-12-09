@@ -16,13 +16,13 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #  PATHS (Now built from PROJECT_ROOT)
 # ===========================
 # Path to the raw NetCDF file
-raw_df_path       = os.path.join(PROJECT_ROOT, 'data', 'raw', 'dados_pacifico_norte2018_2023.nc')
+raw_df_path       = os.path.join(PROJECT_ROOT, 'data', 'raw', 'dados_full2018_2023.nc')
 # Path for the processed CSV data
 processed_df_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'era5_structured_weighted.csv')
 # Path for the results
 results_path      = os.path.join(PROJECT_ROOT, 'results')
 save_name         = 'train_v2'
-add_name_version  = 'north_pacific'
+add_name_version  = 'all_nondim_variables_v2'
 
 # ===========================
 #  MODEL TRAINING
