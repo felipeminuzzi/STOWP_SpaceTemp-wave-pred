@@ -45,12 +45,10 @@ The project is organized modularly to separate configuration, processing, and mo
 
 ## Getting Started
 
-Step 0: Clone the repository:
+Step 0: Clone the repository
 ---------------------
-    ```bash
     git clone https://github.com/felipeminuzzi/STOWP_SpaceTemp-wave-pred.git
     cd STOWP_SpaceTemp-wave-pred
-    ```
 
 Step 1: Configuration
 ---------------------
