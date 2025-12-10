@@ -45,12 +45,12 @@ The project is organized modularly to separate configuration, processing, and mo
 
 ## Getting Started
 
-Step 0: Clone the repository
+### Step 1: Clone the repository
 ---------------------
     git clone https://github.com/felipeminuzzi/STOWP_SpaceTemp-wave-pred.git
     cd STOWP_SpaceTemp-wave-pred
 
-Step 1: Configuration
+### Step 2: Configuration
 ---------------------
 Edit 'src/config.py' to adjust paths and hyperparameters.
   - Paths: The script automatically detects the project root relative to the 
@@ -61,7 +61,7 @@ Edit 'src/config.py' to adjust paths and hyperparameters.
     current setup uses features like 'Hs_mean_train', 'Steepness_mean_train', 
     and circular directional variables.
 
-Step 2: Data Pre-processing
+### Step 3: Data Pre-processing
 ---------------------------
 Run the data creation script to transform raw NetCDF data into an engineered 
 CSV format:
@@ -76,7 +76,7 @@ This script performs the following operations:
     sine/cosine pairs (e.g., u10_sine, mwd_cos).
   - Saves the output in chunks to 'data/processed/'.
 
-Step 3: Model Training & Evaluation
+### Step 4: Model Training & Evaluation
 -----------------------------------
 Run the main engine to train the model and generate results:
 
@@ -91,9 +91,7 @@ This script handles:
   - Explainability: Computes Integrated Gradients to determine feature 
     importance.
 
-================================================================================
-OUTPUTS
-================================================================================
+## Outputs
 
 Results are saved to the 'results/' directory defined in your config file. 
 Key artifacts include:
