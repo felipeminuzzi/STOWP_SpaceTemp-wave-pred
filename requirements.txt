@@ -1,17 +1,32 @@
-matplotlib
-mkdocs
-numpy
+# ===============================================
+# Core Data & Numerical Processing
+# ===============================================
 pandas
-pip
-glob2
-tqdm
-xarray
-six
-Pillow
-basemap
-netcdf4
-h5netcdf
-basemap-data-hires
-shap
-h5py
-math
+numpy
+xarray               # For reading and processing NetCDF files (in 01_create_data.py)
+netcdf4              # Low-level dependency for NetCDF handling
+h5netcdf             # Dependency for reading HDF5/NetCDF4 formats with xarray
+h5py                 # Dependency for HDF5 (used by TensorFlow/Keras model saving and netcdf4)
+glob2                # For extended file path pattern matching
+six                  # Utility library for Python 2/3 compatibility
+
+# ===============================================
+# Machine Learning & Explainability
+# ===============================================
+tensorflow           # For building and running the CNN (includes Keras)
+scikit-learn         # For StandardScaler (in 02_engine.py)
+shap                 # For Integrated Gradients (in 02_engine.py)
+
+# ===============================================
+# Visualization & Utilities
+# ===============================================
+matplotlib
+basemap              # For geographical plotting (in 02_engine.py)
+basemap-data-hires   # High-resolution data files for Basemap
+Pillow               # Image processing library (often required by plotting packages)
+tqdm                 # For displaying progress bars (in both 01_create_data.py and 02_engine.py)
+
+# ===============================================
+# Documentation (User-Requested)
+# ===============================================
+mkdocs               # For generating project documentation

@@ -27,7 +27,7 @@ add_name_version  = 'all_nondim_variables_v2'
 # ===========================
 #  MODEL TRAINING
 # ===========================
-load_trained_model = False
+load_trained_model = True
 use_sampling   = False
 
 # ===========================

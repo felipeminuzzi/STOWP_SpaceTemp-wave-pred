@@ -238,15 +238,18 @@ def plot_spatial_comparison(df_test, y_true, y_pred, pth):
     fig = plt.figure()
     # Plot 1: Real Values
     plt.subplot(1, 3, 1)
-    generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, 'Ground Truth', 'viridis')
+    generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, 
+                 'ERA5 Reanalysis', 'viridis')
 
     # Plot 2: Predicted Values
     plt.subplot(1, 3, 2)
-    generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, 'CNN Prediction', 'viridis')
+    generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, 
+                 'CNN Prediction', 'viridis')
 
     # Plot 3: Error (True - Predicted)
     plt.subplot(1, 3, 3)
-    generate_map(spatial_df['error'].values.reshape(len(lat), len(lon)), lat, lon, '$\Delta_{rel}$' + f' -- MAPE: {round(mape_value, 2)}', 'Reds')
+    generate_map(spatial_df['error'].values.reshape(len(lat), len(lon)), lat, lon, 
+                 '$\Delta_{rel}$' + f' -- MAPE: {round(mape_value, 2)}', 'Reds')
 
     plt.savefig(f'{pth}spatio_temporal_comparison.png')
     plt.close()
@@ -311,11 +314,13 @@ def plot_wave_age_comparison(df_test, y_true, y_pred, cfg, pth):
 
         # --- Plot Ground Truth ---
         plt.sca(axes[i, 0])
-        generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, f'Ground Truth ({condition_name})', 'viridis')
+        generate_map(spatial_df['y_true'].values.reshape(len(lat), len(lon)), lat, lon, 
+                     f'ERA5 Reanalysis ({condition_name})', 'viridis')
 
         # --- Plot CNN Prediction ---
         plt.sca(axes[i, 1])
-        generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, f'CNN Prediction ({condition_name})', 'viridis')
+        generate_map(spatial_df['y_pred'].values.reshape(len(lat), len(lon)), lat, lon, 
+                     f'CNN Prediction ({condition_name})', 'viridis')
 
         # --- Plot Relative Error ---
         plt.sca(axes[i, 2])
