@@ -22,7 +22,7 @@ processed_df_path = os.path.join(PROJECT_ROOT, 'data', 'processed', 'era5_struct
 # Path for the results
 results_path      = os.path.join(PROJECT_ROOT, 'results')
 save_name         = 'train_v2'
-add_name_version  = 'all_nondim_variables_v2'
+add_name_version  = 'north_pacific_v2'
 
 # ===========================
 #  MODEL TRAINING
