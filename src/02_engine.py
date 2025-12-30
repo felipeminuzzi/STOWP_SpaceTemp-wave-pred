@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -166,13 +167,12 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
     return np.mean(attributions, axis=0)
 
 # =============================================================================
-# SECTION 5: VISUALIZATION & METRICS (MATCHING 02_symbwaves.py)
+# SECTION 5: VISUALIZATION & METRICS
 # =============================================================================
 def evaluate_performance(y_true, y_pred, test_set, cfg):
     print("\n" + "="*45)
     print("--- Model Performance Metrics ---")
     
-    # Handle missing config gracefully
     mape_floor = getattr(cfg, 'mape_floor_y', 1e-6)
     
     mape_geral = 100 * np.mean(np.abs((y_true - y_pred) / np.maximum(y_true, mape_floor)))
@@ -194,8 +194,7 @@ def plot_single_map(ax, lon, lat, data, title, vmin, vmax, cmap='viridis'):
     m.drawmeridians(np.arange(lon.min(), lon.max()+1, 5), labels=[0,0,0,1])
     lons, lats = np.meshgrid(lon, lat)
     
-    # --- Force levels to be identical across subplots ---
-    levels = np.linspace(vmin, vmax, 13) # 13 levels gives 12 colored intervals
+    levels = np.linspace(vmin, vmax, 13) 
     cs = m.contourf(lons, lats, data, levels=levels, latlon=True, cmap=cmap, extend='both')
     
     m.colorbar(cs, location='right')
@@ -217,24 +216,17 @@ def generate_mean_maps(df, title_prefix, output_path, mape_value, vmin=None, vma
     fig, axes = plt.subplots(1, 3, figsize=(24, 8)); plt.subplots_adjust(wspace=0.3)
     plot_single_map(axes[0], lons, lats, grid_pred, 'Mean Prediction (ŷ)', vmin, vmax)
     plot_single_map(axes[1], lons, lats, grid_real, 'Mean Ground Truth (y)', vmin, vmax)
-    
-    # --- Using dynamic mape_vmax ---
     plot_single_map(axes[2], lons, lats, grid_mape, f'MAPE (%) -- Avg: {mape_value:.2f}%', 0, mape_vmax, cmap='Reds')
     
     fig.suptitle(f"{title_prefix} Performance", fontsize=16); plt.savefig(output_path, dpi=150, format='pdf', bbox_inches='tight'); plt.close(fig)
 
 
-def generate_visualizations(results_df, metrics, cfg, thresholds):
+def generate_visualizations(results_df, metrics, cfg, thresholds, save_dir):
+    """
+    Generates all visualization plots using the provided save_dir.
+    """
     basin = getattr(cfg, 'basin_name', 'south_atlantic')
-    print(f"6. Generating visualizations for {basin.upper()}...")
-    
-    # Use existing structure or fallback
-    if hasattr(cfg, 'PROJECT_ROOT'):
-        results_dir = os.path.join(cfg.PROJECT_ROOT, f'results/{basin}/')
-    else:
-        results_dir = format_and_create_path(cfg.results_path + f'/{cfg.save_name}_viz')
-        
-    os.makedirs(results_dir, exist_ok=True)
+    print(f"6. Generating visualizations for {basin.upper()} in {save_dir}...")
     
     # Use thresholds passed from sampling
     wa_y = thresholds['wa_y']
@@ -245,14 +237,15 @@ def generate_visualizations(results_df, metrics, cfg, thresholds):
     fig, ax1 = plt.subplots(figsize=(18, 6)); ax1.plot(daily_stats.index, daily_stats['error'], color='tab:red', alpha=0.7)
     ax1.axhline(y=metrics['mape_geral'], color='r', ls='--'); ax1.set_ylabel('MAPE (%)', color='tab:red')
     ax2 = ax1.twinx(); ax2.plot(daily_stats.index, daily_stats['y_real'], color='tab:blue', alpha=0.5)
-    plt.title(f"Performance Over Time - {basin.replace('_', ' ').capitalize()}"); plt.savefig(os.path.join(results_dir, 'performance_timeseries.pdf'), format='pdf', bbox_inches='tight'); plt.close(fig)
+    plt.title(f"Performance Over Time - {basin.replace('_', ' ').capitalize()}"); 
+    plt.savefig(os.path.join(save_dir, 'performance_timeseries.pdf'), format='pdf', bbox_inches='tight'); plt.close(fig)
     
     # MAPE vs Wave Age
     bins = np.linspace(results_df['Wave_age'].min(), results_df['Wave_age'].max(), 31)
     results_df['wa_bin'] = pd.cut(results_df['Wave_age'], bins=bins)
     mape_by_wa = results_df.groupby('wa_bin', observed=True)['error'].mean()
     plt.figure(figsize=(12, 5)); mape_by_wa.plot(marker='o'); plt.title(f"MAPE vs. Wave Age - {basin.replace('_', ' ').capitalize()}"); plt.grid(True, linestyle='--')
-    plt.savefig(os.path.join(results_dir, 'mape_vs_wave_age.pdf'), format='pdf', bbox_inches='tight'); plt.close()
+    plt.savefig(os.path.join(save_dir, 'mape_vs_wave_age.pdf'), format='pdf', bbox_inches='tight'); plt.close()
     
     # Regime-Specific Errors for Maps
     df_ws = results_df[results_df['Wave_age'] <= wa_y]
@@ -261,13 +254,13 @@ def generate_visualizations(results_df, metrics, cfg, thresholds):
     mape_sw = df_sw['error'].mean() if not df_sw.empty else 0
 
     # Overall: Escalas amplas
-    generate_mean_maps(results_df, "Overall", os.path.join(results_dir, 'mean_map_overall.pdf'), metrics['mape_geral'], vmin=0.0, vmax=1.8, mape_vmax=50)
+    generate_mean_maps(results_df, "Overall", os.path.join(save_dir, 'mean_map_overall.pdf'), metrics['mape_geral'], vmin=0.0, vmax=1.8, mape_vmax=50)
     
     # Wind-Sea: Zoom na física (0.1-0.4) e Zoom no erro (0-20%)
-    generate_mean_maps(df_ws, "Wind-Sea", os.path.join(results_dir, 'mean_map_windsea.pdf'), mape_ws, vmin=0.15, vmax=0.4, mape_vmax=20)
+    generate_mean_maps(df_ws, "Wind-Sea", os.path.join(save_dir, 'mean_map_windsea.pdf'), mape_ws, vmin=0.15, vmax=0.4, mape_vmax=20)
     
     # Swell: Escalas amplas
-    generate_mean_maps(df_sw, "Swell", os.path.join(results_dir, 'mean_map_swell.pdf'), mape_sw, vmin=0.0, vmax=1.8, mape_vmax=50)
+    generate_mean_maps(df_sw, "Swell", os.path.join(save_dir, 'mean_map_swell.pdf'), mape_sw, vmin=0.0, vmax=1.8, mape_vmax=50)
     
     return mape_ws, mape_sw
 
@@ -279,16 +272,17 @@ def main():
     Main function to run the spatio-temporal prediction workflow.
     """
     train_set, test_set = load_and_split_data(config)
+    
+    # Define save paths for Model Checkpoints (separately from viz results)
     save_path = format_and_create_path(config.results_path + f'/{config.save_name}')
-    full_path = format_and_create_path(f'{save_path}{config.add_name_version}')
-
+    
     if 'Hs_mean_train' in config.feature_var or 'Steepness_mean_train' in config.feature_var:
         train_set, test_set = create_climatology_feature(train_set, test_set)
 
     if config.use_sampling:
         train_set_sampled, thresholds = stratified_sample(train_set, config)
     else:
-        # Define default thresholds if sampling not used, based on typical config
+        # Define default thresholds if sampling not used
         train_set_sampled = train_set.copy()
         thresholds = {'wa_y': config.piecewise_wa_young, 'wa_o': config.piecewise_wa_old}
         
@@ -313,6 +307,8 @@ def main():
     input_shape = (X_train_cnn.shape[1], X_train_cnn.shape[2], X_train_cnn.shape[3])
     model_path = f'{save_path}best_cnn_model.keras'
 
+    # --- TIMER: START TRAINING ---
+    training_time = 0.0
     if config.load_trained_model:
         print(f"\n5. Loading pre-trained model from: {model_path}")
         try:
@@ -328,16 +324,27 @@ def main():
         model_checkpoint = ModelCheckpoint(model_path, save_best_only=True, monitor='val_loss', mode='min', verbose=1)
         
         print("\n5. Training a new model...")
+        start_train = time.time()
         history = model.fit(X_train_cnn, y_train, epochs=config.n_epochs, batch_size=64,
                             validation_split = 0.2,
                             callbacks=[early_stopping, model_checkpoint], verbose=1)
+        end_train = time.time()
+        training_time = end_train - start_train
+        print(f"   Training completed in {training_time:.2f} seconds.")
+    # --- TIMER: END TRAINING ---
 
     # 6. Make Predictions and Prepare Data for Eval
     print("\n6. Making predictions...")
+    
+    # --- TIMER: START TESTING (INFERENCE) ---
+    start_test = time.time()
     y_pred = model.predict(X_test_cnn).flatten()
+    end_test = time.time()
+    testing_time = end_test - start_test
+    print(f"   Inference completed in {testing_time:.2f} seconds.")
+    # --- TIMER: END TESTING ---
 
-    # 7. Evaluate and Visualize
-    # Create the unified results dataframe required by the new visualization functions
+    # Create the unified results dataframe
     results_df = pd.DataFrame({
         'Time': test_set['Time'].values, 
         'latitude': test_set['latitude'].values, 
@@ -348,19 +355,31 @@ def main():
         'u10_mod': test_set['u10_mod'].values
     })
     
-    # Calculate error column exactly as in symbwaves
-    mape_floor = getattr(config, 'mape_floor_y', 1e-6) # Fallback if config is missing it
+    # Calculate error column
+    mape_floor = getattr(config, 'mape_floor_y', 1e-6) 
     results_df['error'] = 100 * np.abs((results_df['y_real'] - results_df['y_pred']) / np.maximum(results_df['y_real'], mape_floor))
 
-    # Save the results to csv
-    print(f"  Saving predictions to {full_path}test_predictions.csv...")
-    results_df.to_csv(f'{full_path}test_predictions.csv', index=False)
+    # --- DEFINE VISUALIZATION/RESULTS PATH (Unified for CSV, Plots, and Func) ---
+    basin = getattr(config, 'basin_name', 'south_atlantic')
+    if hasattr(config, 'PROJECT_ROOT'):
+        viz_dir = os.path.join(config.PROJECT_ROOT, f'results/{basin}/')
+    else:
+        viz_dir = format_and_create_path(config.results_path + f'/{config.save_name}_viz')
+    
+    os.makedirs(viz_dir, exist_ok=True)
+    # ----------------------------------------------------------------------------
+
+    # --- SAVE RESULTS TO CSV ---
+    csv_path = os.path.join(viz_dir, 'test_predictions.csv')
+    print(f"  Saving predictions to {csv_path}...")
+    results_df.to_csv(csv_path, index=False)
+    # ---------------------------
 
     # Calculate Metrics
     metrics = evaluate_performance(results_df['y_real'].values, results_df['y_pred'].values, test_set, config)
     
-    # Generate Plots
-    mape_ws, mape_sw = generate_visualizations(results_df, metrics, config, thresholds)
+    # Generate Plots (Passing viz_dir explicitly)
+    mape_ws, mape_sw = generate_visualizations(results_df, metrics, config, thresholds, viz_dir)
 
     # 8. Feature Importance Analysis (Integrated Gradients)
     train_sample_indices = np.random.choice(X_train_cnn.shape[0], config.n_explain_samples, replace=False)
@@ -378,16 +397,21 @@ def main():
     plt.title('Integrated Gradients Feature Importance')
     plt.ylabel('Attribution')
     plt.tight_layout()
-    plt.savefig(f'{full_path}integrated_gradients_importance.png')
+    
+    # Save IG plot to the same viz_dir
+    ig_path = os.path.join(viz_dir, 'integrated_gradients_importance.png')
+    plt.savefig(ig_path)
     plt.close()
-    print("  Integrated Gradients plot saved to integrated_gradients_importance.png")
+    print(f"  Integrated Gradients plot saved to {ig_path}")
 
-    # --- FINAL CONSOLE SUMMARY BLOCK (MATCHING SYMBWAVES) ---
+    # --- FINAL CONSOLE SUMMARY BLOCK ---
     print("\n" + "#"*55)
     print("--- FINAL SUMMARY OF PERFORMANCE ---")
     print("#"*55)
     print("  Model: CNN (Deep 4-Layer 2D)")
     print(f"  Regime Thresholds: WA <= {thresholds['wa_y']:.2f} (Young), WA >= {thresholds['wa_o']:.2f} (Swell)")
+    print(f"  Training Time: {training_time:.2f} s")
+    print(f"  Testing Time:  {testing_time:.2f} s")
     print("\n--- PERFORMANCE BY REGIME ---")
     print(f"  MAPE Overall:  {metrics['mape_geral']:.2f}%")
     print(f"  MAPE Wind-Sea: {mape_ws:.2f}%")
