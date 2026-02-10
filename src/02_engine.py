@@ -7,6 +7,7 @@ from tqdm import tqdm
 from mpl_toolkits.basemap import Basemap
 import multiprocessing as mp
 import config
+from metrics_omega import evaluate_performance as evaluate_performance_omega, mape_omega, rmse, mae
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from keras.models import Sequential
@@ -149,27 +150,28 @@ def get_integrated_gradients(model, X_test_sample, baseline, n_steps=50):
     print("  Calculating Integrated Gradients...")
     X_test_sample_tensor = tf.convert_to_tensor(X_test_sample, dtype=tf.float32)
     baseline = tf.convert_to_tensor(baseline, dtype=tf.float32)
-    
+
     attributions = []
-    for i in tqdm(range(X_test_sample.shape[0]), desc="IG Progress"):
-        interpolated_path = [baseline + (i/n_steps) * (X_test_sample_tensor[i] - baseline) for i in range(n_steps + 1)]
+    for j in tqdm(range(X_test_sample.shape[0]), desc="IG Progress"):
+        x = X_test_sample_tensor[j]
+        interpolated_path = [baseline + (k / n_steps) * (x - baseline) for k in range(n_steps + 1)]
         path_tensor = tf.stack(interpolated_path)
-        
+
         with tf.GradientTape() as tape:
             tape.watch(path_tensor)
             predictions = model(path_tensor)
-        
+
         grads = tape.gradient(predictions, path_tensor)
         avg_grads = tf.reduce_mean(grads, axis=0)
-        integrated_grads = (X_test_sample_tensor[i] - baseline) * avg_grads
+        integrated_grads = (x - baseline) * avg_grads
         attributions.append(integrated_grads.numpy())
-        
-    return np.mean(attributions, axis=0)
 
+    return np.mean(attributions, axis=0)
 # =============================================================================
 # SECTION 5: VISUALIZATION & METRICS
 # =============================================================================
-def evaluate_performance(y_true, y_pred, test_set, cfg):
+def evaluate_performance_legacy(y_true, y_pred, test_set, cfg):
+
     print("\n" + "="*45)
     print("--- Model Performance Metrics ---")
     
@@ -216,7 +218,10 @@ def generate_mean_maps(df, title_prefix, output_path, mape_value, vmin=None, vma
     fig, axes = plt.subplots(1, 3, figsize=(24, 8)); plt.subplots_adjust(wspace=0.3)
     plot_single_map(axes[0], lons, lats, grid_pred, 'Mean Prediction (ŷ)', vmin, vmax)
     plot_single_map(axes[1], lons, lats, grid_real, 'Mean Ground Truth (y)', vmin, vmax)
-    plot_single_map(axes[2], lons, lats, grid_mape, f'MAPE (%) -- Avg: {mape_value:.2f}%', 0, mape_vmax, cmap='Reds')
+    plot_single_map(axes[2], lons, lats, grid_mape,f"Mean local MAPE (%) | MAPE$_\\Omega$ = {mape_value:.2f}%",
+    0, mape_vmax, cmap="Reds")
+
+
     
     fig.suptitle(f"{title_prefix} Performance", fontsize=16); plt.savefig(output_path, dpi=150, format='pdf', bbox_inches='tight'); plt.close(fig)
 
@@ -247,11 +252,16 @@ def generate_visualizations(results_df, metrics, cfg, thresholds, save_dir):
     plt.figure(figsize=(12, 5)); mape_by_wa.plot(marker='o'); plt.title(f"MAPE vs. Wave Age - {basin.replace('_', ' ').capitalize()}"); plt.grid(True, linestyle='--')
     plt.savefig(os.path.join(save_dir, 'mape_vs_wave_age.pdf'), format='pdf', bbox_inches='tight'); plt.close()
     
-    # Regime-Specific Errors for Maps
-    df_ws = results_df[results_df['Wave_age'] <= wa_y]
-    df_sw = results_df[results_df['Wave_age'] >= wa_o]
-    mape_ws = df_ws['error'].mean() if not df_ws.empty else 0
-    mape_sw = df_sw['error'].mean() if not df_sw.empty else 0
+
+    wa_vo = getattr(cfg, "swell_stability_threshold", 20.0)
+
+    df_ws = results_df[results_df["Wave_age"] <= wa_y]
+    df_sw = results_df[(results_df["Wave_age"] >= wa_o) & (results_df["Wave_age"] < wa_vo)]
+
+    # These are sample-based scalars over the chosen subsets (paper-style MAPE_Ω on y)
+    mape_ws = float(df_ws["error"].mean()) if not df_ws.empty else float("nan")
+    mape_sw = float(df_sw["error"].mean()) if not df_sw.empty else float("nan")
+    
 
     # Overall: Escalas amplas
     generate_mean_maps(results_df, "Overall", os.path.join(save_dir, 'mean_map_overall.pdf'), metrics['mape_geral'], vmin=0.0, vmax=1.8, mape_vmax=50)
@@ -283,10 +293,10 @@ def main():
         train_set_sampled, thresholds = stratified_sample(train_set, config)
     else:
         # Define default thresholds if sampling not used
-        train_set_sampled = train_set.copy()
+     #   train_set_sampled = train_set.copy()
         thresholds = {'wa_y': config.piecewise_wa_young, 'wa_o': config.piecewise_wa_old}
         
-    train_set_sampled = train_set.copy()
+#    train_set_sampled = train_set.copy()
     ensure_cols_exist(train_set_sampled, config.feature_var, "in sampled train set")
     ensure_cols_exist(test_set, config.feature_var, "in test set")
    
@@ -376,7 +386,9 @@ def main():
     # ---------------------------
 
     # Calculate Metrics
-    metrics = evaluate_performance(results_df['y_real'].values, results_df['y_pred'].values, test_set, config)
+    metrics = evaluate_performance_omega(results_df['y_real'].values, results_df['y_pred'].values, test_set, config)
+    metrics["mape_geral"] = metrics["mape_y"]
+
     
     # Generate Plots (Passing viz_dir explicitly)
     mape_ws, mape_sw = generate_visualizations(results_df, metrics, config, thresholds, viz_dir)
@@ -397,9 +409,8 @@ def main():
     plt.title('Integrated Gradients Feature Importance')
     plt.ylabel('Attribution')
     plt.tight_layout()
-    
     # Save IG plot to the same viz_dir
-    ig_path = os.path.join(viz_dir, 'integrated_gradients_importance.png')
+    ig_path = os.path.join(viz_dir, 'integrated_gradients_importance.pdf')
     plt.savefig(ig_path)
     plt.close()
     print(f"  Integrated Gradients plot saved to {ig_path}")
@@ -412,10 +423,38 @@ def main():
     print(f"  Regime Thresholds: WA <= {thresholds['wa_y']:.2f} (Young), WA >= {thresholds['wa_o']:.2f} (Swell)")
     print(f"  Training Time: {training_time:.2f} s")
     print(f"  Testing Time:  {testing_time:.2f} s")
-    print("\n--- PERFORMANCE BY REGIME ---")
-    print(f"  MAPE Overall:  {metrics['mape_geral']:.2f}%")
-    print(f"  MAPE Wind-Sea: {mape_ws:.2f}%")
-    print(f"  MAPE Swell:    {mape_sw:.2f}%")
+    
+    
+    wa_y = thresholds['wa_y']
+    wa_o = thresholds['wa_o']
+    wa_vo = getattr(config, "swell_stability_threshold", 20.0)
+
+    # Masks (paper-consistent): Wind-Sea (WA <= wa_y), Swell (wa_o <= WA < wa_vo)
+    wa = results_df["Wave_age"].values
+    mask_ws = wa <= wa_y
+    mask_sw = (wa >= wa_o) & (wa < wa_vo)
+
+    # Pull arrays from metrics_omega output (already computed)
+    hs_true = metrics["hs_true"]
+    hs_pred = metrics["hs_pred"]
+
+    # Regime metrics (paper-consistent)
+    mape_y_ws = mape_omega(results_df["y_real"].values, results_df["y_pred"].values, metrics["y_floor_used"], mask=mask_ws)
+    mape_y_sw = mape_omega(results_df["y_real"].values, results_df["y_pred"].values, metrics["y_floor_used"], mask=mask_sw)
+
+    mae_hs_all = metrics["mae_hs"]
+    mae_hs_ws  = mae(hs_true, hs_pred, mask=mask_ws)
+    mae_hs_sw  = mae(hs_true, hs_pred, mask=mask_sw)
+
+    print("\n--- PERFORMANCE BY REGIME (paper-consistent) ---")   
+    print(f"  Regime Thresholds: WA <= {thresholds['wa_y']:.2f} (Wind-Sea), {thresholds['wa_o']:.2f} <= WA < {getattr(config, 'swell_stability_threshold', 20.0):.1f} (Swell)")
+
+    print(f"  MAPE_Ω(y) Overall:   {metrics['mape_y']:.2f}% | MAE(Hs) Overall:   {mae_hs_all:.3f} m")
+    print(f"  MAPE_Ω(y) Wind-Sea:  {mape_y_ws:.2f}% | MAE(Hs) Wind-Sea:  {mae_hs_ws:.3f} m")
+    print(f"  MAPE_Ω(y) Swell:     {mape_y_sw:.2f}% | MAE(Hs) Swell:     {mae_hs_sw:.3f} m")
+
+    
+    
     print("#"*55 + "\n")
     
     print("Workflow completed successfully! ✨")
